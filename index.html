@@ -118,6 +118,259 @@
 
       <div class="pontuacao">Pontos: <span id="pontos">0</span></div>
     </div>
+    <!-- ASCII Sidebar (cole dentro do <body>) -->
+<style>
+/* ASCII sidebar styles */
+#asciiSidebarToggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10050;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  font-weight: 600;
+}
+#asciiSidebar {
+  --w: 340px;
+  position: fixed;
+  right: calc(-1 * var(--w));
+  top: 0;
+  width: var(--w);
+  height: 100vh;
+  background: linear-gradient(180deg,#0f172a,#111827);
+  color: #e6eef8;
+  box-shadow: -8px 0 30px rgba(2,6,23,0.6);
+  z-index: 10040;
+  transition: right 300ms cubic-bezier(.2,.9,.2,1);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+#asciiSidebar.open { right: 0; }
+
+#asciiSidebarHeader {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+#asciiSidebarHeader h3 {
+  margin:0;
+  font-size:16px;
+  color:#93c5fd;
+  letter-spacing:0.2px;
+}
+#asciiSidebarClose {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #cfe8ff;
+  padding:6px 8px;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+#asciiSearch {
+  width:100%;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
+  color: #e6eef8;
+  outline: none;
+  font-size:14px;
+}
+
+#asciiTableWrap {
+  overflow:auto;
+  flex:1 1 auto;
+  padding-top:6px;
+}
+#asciiTable {
+  width:100%;
+  border-collapse: collapse;
+  font-size:14px;
+}
+#asciiTable thead th {
+  text-align:left;
+  font-size:12px;
+  color:#cfe8ff;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding:8px 6px;
+  position: sticky;
+  top:0;
+  background: linear-gradient(180deg, rgba(15,23,42,0.92), rgba(15,23,42,0.9));
+  z-index:10;
+}
+#asciiTable td {
+  padding:8px 6px;
+  border-bottom: 1px dashed rgba(255,255,255,0.02);
+  color:#f8fafc;
+}
+.ascii-char {
+  font-family: "Segoe UI Symbol", "Noto Color Emoji", Arial, sans-serif;
+  font-size:16px;
+}
+.ascii-code {
+  color:#93c5fd;
+  font-weight:600;
+  width:70px;
+}
+.ascii-note {
+  color:#9ca3af;
+  font-size:12px;
+  text-align:right;
+  padding-top:6px;
+}
+@media (max-width:600px){
+  #asciiSidebar { --w: 92%; }
+  #asciiSidebarToggle {'      bottom: 10px; padding:10px;}
+}
+</style>
+
+<!-- toggle button -->
+<button id="asciiSidebarToggle" aria-expanded="false" aria-controls="asciiSidebar">Abrir Tabela ASCII</button>
+
+<!-- sidebar -->
+<aside id="asciiSidebar" aria-hidden="true">
+  <div id="asciiSidebarHeader">
+    <h3>Tabela ASCII (Decimal → Caractere)</h3>
+    <button id="asciiSidebarClose" title="Fechar painel">✕</button>
+  </div>
+
+  <input id="asciiSearch" placeholder="Filtrar por caractere ou código (ex.: A ou 65)" aria-label="Pesquisar na tabela ASCII">
+
+  <div id="asciiTableWrap">
+    <table id="asciiTable" role="table" aria-label="Tabela ASCII">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Caractere</th>
+        </tr>
+      </thead>
+      <tbody id="asciiTbody"></tbody>
+    </table>
+  </div>
+
+  <div class="ascii-note">Códigos: 32 → 126 (imprimíveis). Espaço aparece como <code>espaço</code>.</div>
+</aside>
+
+<script>
+/* ASCII sidebar script — gera tabela e faz abrir/fechar + filtro */
+(function(){
+  const btn = document.getElementById('asciiSidebarToggle');
+  const sidebar = document.getElementById('asciiSidebar');
+  const closeBtn = document.getElementById('asciiSidebarClose');
+  const tbody = document.getElementById('asciiTbody');
+  const search = document.getElementById('asciiSearch');
+
+  // Gera os dados ASCII imprimíveis (32..126)
+  const rows = [];
+  for (let code = 32; code <= 126; code++){
+    const ch = String.fromCharCode(code);
+    // exibição legível para espaço
+    const display = (ch === ' ') ? 'espaço' : ch;
+    rows.push({ code, display, raw: ch });
+  }
+
+  // Função para renderizar (accepts array)
+  function render(list){
+    tbody.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (const r of list){
+      const tr = document.createElement('tr');
+
+      const tdCode = document.createElement('td');
+      tdCode.className = 'ascii-code';
+      tdCode.textContent = r.code;
+
+      const tdChar = document.createElement('td');
+      tdChar.className = 'ascii-char';
+      // Mostra "espaço" em itálico para ficar claro
+      if (r.raw === ' ') {
+        const em = document.createElement('em');
+        em.style.color = '#f3f4f6';
+        em.style.fontStyle = 'normal';
+        em.textContent = 'espaço';
+        tdChar.appendChild(em);
+      } else {
+        tdChar.textContent = r.display;
+      }
+
+      tr.appendChild(tdCode);
+      tr.appendChild(tdChar);
+      frag.appendChild(tr);
+    }
+    tbody.appendChild(frag);
+  }
+
+  // Inicial render
+  render(rows);
+
+  // Toggle handlers
+  function openSidebar(){
+    sidebar.classList.add('open');
+    sidebar.setAttribute('aria-hidden','false');
+    btn.setAttribute('aria-expanded','true');
+    // move foco para search
+    setTimeout(()=> search.focus(), 200);
+  }
+  function closeSidebar(){
+    sidebar.classList.remove('open');
+    sidebar.setAttribute('aria-hidden','true');
+    btn.setAttribute('aria-expanded','false');
+    btn.focus();
+  }
+
+  btn.addEventListener('click', ()=> {
+    if (sidebar.classList.contains('open')) closeSidebar();
+    else openSidebar();
+  });
+  closeBtn.addEventListener('click', closeSidebar);
+
+  // Fechar com Esc
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) closeSidebar();
+  });
+
+  // Filtrar tabela por código ou caractere
+  search.addEventListener('input', ()=>{
+    const q = search.value.trim().toLowerCase();
+    if (!q) {
+      render(rows);
+      return;
+    }
+
+    const filtered = rows.filter(r => {
+      // busca por código decimal (ex.: "65")
+      if (!isNaN(q) && q !== '') {
+        return String(r.code).indexOf(q) !== -1;
+      }
+      // busca por caractere (incluindo palavra "espaço")
+      return r.display.toLowerCase().includes(q) || (r.raw && r.raw.toLowerCase && r.raw.toLowerCase().includes(q));
+    });
+
+    render(filtered);
+  });
+
+  // Acessibilidade: clique fora fecha o painel
+  document.addEventListener('click', (ev) => {
+    if (!sidebar.classList.contains('open')) return;
+    const isClickInside = sidebar.contains(ev.target) || btn.contains(ev.target);
+    if (!isClickInside) closeSidebar();
+  });
+
+  // Expor função global (opcional) para abrir via JS: window.openAsciiSidebar()
+  window.openAsciiSidebar = openSidebar;
+  window.closeAsciiSidebar = closeSidebar;
+})();
+</script>
 
     <script>
       document.getElementById("btnEnviar").style.display = "none";
