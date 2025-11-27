@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quiz Binário & ASCII</title>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #1f2937, #111827);
+        color: #f9fafb;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #1f2937;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        border: 1px solid #374151;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        color: #60a5fa;
+      }
+
+      label {
+        font-size: 15px;
+        display: block;
+        margin-bottom: 5px;
+        color: #d1d5db;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        border: 1px solid #4b5563;
+        background: #111827;
+        color: white;
+        font-size: 16px;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        font-size: 17px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: 0.2s;
+      }
+
+      button:hover {
+        background: #2563eb;
+      }
+
+      #pergunta {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 20px 0;
+        padding: 15px;
+        background: #111827;
+        border-left: 4px solid #3b82f6;
+        border-radius: 4px;
+      }
+
+      #resultado {
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: bold;
+      }
+
+      .correto {
+        background-color: #14532d;
+        color: #bbf7d0;
+      }
+
+      .errado {
+        background-color: #7f1d1d;
+        color: #fecaca;
+      }
+
+      .pontuacao {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 18px;
+        color: #93c5fd;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Desafio ASCII</h1>
+
+      <label for="nome">Seu nome:</label>
+      <input type="text" id="nome" />
+
+      <div id="pergunta">Clique em "Nova Pergunta" para começar</div>
+
+      <label for="resposta">Sua resposta:</label>
+      <input type="text" id="resposta" />
+
+      <button id="btnEnviar" onclick="verificar()">Enviar Resposta</button>
+
+      <button onclick="novaPergunta()">Nova Pergunta</button>
+
+      <div id="resultado"></div>
+
+      <div class="pontuacao">Pontos: <span id="pontos">0</span></div>
+    </div>
+
+    <script>
+      document.getElementById("btnEnviar").style.display = "none";
+
+      // URL DA SUA API (cole aqui!)
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbzzo7cEgCQk3bcQLQf_hYIyXORvOpq_xdZUkk0OO5T5hH_j7nK12H14PwyKOiuKhkwa/exec";
+
+      let podeResponder = false;
+
+      // banco de perguntas simples
+      const perguntas = [
+        {
+          tipo: "ascii-dec",
+          pergunta: "Qual caractere representa o decimal 65?",
+          resposta: "A",
+        },
+        {
+          tipo: "ascii-char",
+          pergunta: "Qual o decimal correspondente ao caractere 'a'?",
+          resposta: "97",
+        },
+        {
+          tipo: "ascii-dec",
+          pergunta: "Qual caractere corresponde ao decimal 49?",
+          resposta: "1",
+        },
+        {
+          tipo: "bin-char",
+          pergunta: "Qual é o binário do caractere 'b'?",
+          resposta: "01100010",
+        },
+        {
+          tipo: "bin-to-dec",
+          pergunta: "O que o binário 00110111 representa em decimal?",
+          resposta: "55",
+        },
+      ];
+
+      let perguntaAtual = null;
+      let pontos = 0;
+
+      // gerar pergunta aleatória
+      function novaPergunta1() {
+        // Número ASCII imprimível: 32 a 126
+        const codigo = Math.floor(Math.random() * (126 - 32 + 1)) + 32;
+
+        // Converte decimal para caractere
+        const caractere = String.fromCharCode(codigo);
+
+        // Armazena pergunta atual
+        perguntaAtual = {
+          tipo: "ascii-auto",
+          pergunta: `Qual é o caractere associado ao código ASCII ${codigo}₁₀?`,
+          resposta: caractere,
+        };
+
+        // Atualiza interface
+        document.getElementById("pergunta").innerText = perguntaAtual.pergunta;
+        document.getElementById("resposta").value = "";
+        document.getElementById("resultado").innerText = "";
+      }
+
+      function novaPergunta2() {
+        // ASCII imprimível: 32 a 126
+        const codigo = Math.floor(Math.random() * (126 - 32 + 1)) + 32;
+
+        // Converte para caractere
+        const caractere = String.fromCharCode(codigo);
+
+        // Armazena pergunta atual
+        perguntaAtual = {
+          tipo: "char-to-dec",
+          pergunta: `Qual é o código ASCII em decimal do caractere "${caractere}"?`,
+          resposta: String(codigo), // decimal esperado como string
+        };
+
+        // Atualiza interface
+        document.getElementById("pergunta").innerText = perguntaAtual.pergunta;
+        document.getElementById("resposta").value = "";
+        document.getElementById("resultado").innerText = "";
+      }
+
+      function novaPergunta3() {
+        // Sorteia um código ASCII válido (32 a 126)
+        const codigo = Math.floor(Math.random() * (126 - 32 + 1)) + 32;
+
+        // Converte para binário com padding de 8 bits
+        const binario = codigo.toString(2).padStart(8, "0");
+
+        // Define o objeto perguntaAtual no formato esperado pelo sistema
+        perguntaAtual = {
+          tipo: "bin-to-ascii",
+          pergunta: `O código binário ${binario}₂ representa qual caractere na tabela ASCII?`,
+          resposta: String.fromCharCode(codigo), // caractere correto
+        };
+
+        // Atualiza interface
+        document.getElementById("pergunta").innerText = perguntaAtual.pergunta;
+        document.getElementById("resposta").value = "";
+        document.getElementById("resultado").innerText = "";
+      }
+
+      function novaPergunta4() {
+        // Sorteia um código ASCII imprimível (32 a 126)
+        const codigo = Math.floor(Math.random() * (126 - 32 + 1)) + 32;
+
+        // Converte para caractere
+        const caractere = String.fromCharCode(codigo);
+
+        // Converte para binário (8 bits)
+        const binario = codigo.toString(2).padStart(8, "0");
+
+        // Texto legível para o usuário (trata espaço)
+        const displayChar = caractere === " " ? "espaço" : caractere;
+
+        // Preenche o objeto padrão que verificar() espera
+        perguntaAtual = {
+          tipo: "ascii-to-bin",
+          pergunta: `Qual é a representação binária do caractere "${displayChar}" na tabela ASCII?`,
+          resposta: binario, // resposta esperada como string "00110001"
+        };
+
+        // Atualiza a interface (mesmo padrão das outras)
+        document.getElementById("pergunta").innerText = perguntaAtual.pergunta;
+        document.getElementById("resposta").value = "";
+        document.getElementById("resultado").innerText = "";
+      }
+
+      // Array que contém todas as funções geradoras de perguntas
+      const geradoresDePerguntas = [
+        novaPergunta1,
+        novaPergunta2,
+        novaPergunta3,
+        novaPergunta4,
+        // basta adicionar novas funções aqui no futuro
+      ];
+
+      function novaPergunta() {
+        const indice = Math.floor(Math.random() * geradoresDePerguntas.length);
+        geradoresDePerguntas[indice](); // executa a função sorteada
+        podeResponder = true;
+        document.getElementById("resultado").innerText = "";
+        document.getElementById("btnEnviar").style.display = "block";
+        podeResponder = true; // se estiver usando a flag
+      }
+
+      // verificar resposta
+      function __verificar() {
+        const nome = document.getElementById("nome").value.trim();
+        if (!nome) {
+          alert("Digite seu nome!");
+          return;
+        }
+
+        const resp = document.getElementById("resposta").value.trim();
+        const correta = perguntaAtual.resposta;
+
+        const acertou = resp === correta;
+
+        if (acertou) {
+          pontos++;
+          document.getElementById("resultado").innerText =
+            "✔ Resposta correta!";
+        } else {
+          document.getElementById(
+            "resultado"
+          ).innerText = `✘ Incorreto. Resposta certa: "${correta}"`;
+        }
+
+        document.getElementById("pontos").innerText = pontos;
+
+        // Registrar na planilha
+        fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            nome: nome,
+            pontos: pontos,
+            pergunta: perguntaAtual.pergunta,
+            acertou: acertou ? "Sim" : "Não",
+          }),
+        });
+      }
+
+      function verificar() {
+        if (!podeResponder) {
+          alert("Clique em 'Nova Pergunta' antes de responder.");
+          return;
+        }
+
+        const nome = document.getElementById("nome").value.trim();
+        if (!nome) {
+          alert("Digite seu nome!");
+          return;
+        }
+
+        // proteção: garantir que exista uma pergunta atual
+        if (!perguntaAtual || !("resposta" in perguntaAtual)) {
+          alert("Nenhuma pergunta ativa. Clique em 'Nova pergunta'.");
+          return;
+        }
+
+        const resp = document.getElementById("resposta").value.trim();
+        const correta = perguntaAtual.resposta;
+
+        const acertou = resp === correta;
+
+        if (acertou) {
+          pontos++;
+          document.getElementById("resultado").innerText =
+            "✔ Resposta correta!";
+        } else {
+          document.getElementById(
+            "resultado"
+          ).innerText = `✘ Incorreto. Resposta certa: "${correta}"`;
+        }
+
+        document.getElementById("pontos").innerText = pontos;
+
+        // enviar para a planilha (sem bloqueio; opcional: tratar promise)
+        fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            nome: nome,
+            pontos: pontos,
+            pergunta: perguntaAtual.pergunta,
+            acertou: acertou ? "Sim" : "Não",
+          }),
+        }).catch((err) => console.warn("Erro no envio:", err));
+
+        const box = document.getElementById("resultado");
+        box.classList.remove("correto", "errado");
+
+        if (acertou) {
+          box.classList.add("correto");
+        } else {
+          box.classList.add("errado");
+        }
+
+        document.getElementById("btnEnviar").style.display = "none";
+        podeResponder = false;
+      }
+
+      novaPergunta();
+    </script>
+  </body>
+</html>
