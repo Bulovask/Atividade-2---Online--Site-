@@ -733,9 +733,10 @@
         qtdSaidas += 1;
         registrarSaida("blur");
         showAlert(
-          "Você saiu " +
-            Math.ceil(qtdSaidas) +
-            " vezes, por favor não saia, pois ficará registrado e essa questão pode ser anulada!"
+          "Identificamos que você saiu da página " +
+            qtdSaidas +
+            " vezes. \
+Para garantir a validade da atividade, permaneça nesta tela até concluir a questão."
         );
       });
 
