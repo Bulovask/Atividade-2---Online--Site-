@@ -233,6 +233,7 @@
       .ascii-bin.hide,
       .ascii-code.hide {
         color: transparent !important;
+        user-select: none;
         background: linear-gradient(
           30deg,
           rgba(0, 0, 0, 1) 0%,
@@ -260,6 +261,60 @@
           bottom: 10px;
           padding: 10px;
         }
+      }
+
+      .alert-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.7);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20000;
+      }
+
+      .alert-overlay.hidden {
+        display: none;
+      }
+
+      .alert-box {
+        background: linear-gradient(180deg, #0f172a, #111827);
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 20px 22px;
+        width: 320px;
+        max-width: 90%;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        text-align: center;
+      }
+
+      .alert-box h4 {
+        margin: 0 0 10px;
+        color: #93c5fd;
+        font-size: 18px;
+      }
+
+      .alert-box p {
+        margin: 0 0 16px;
+        color: #e5e7eb;
+        font-size: 15px;
+        line-height: 1.4;
+      }
+
+      .alert-box button {
+        width: 100%;
+        padding: 10px;
+        font-size: 15px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .alert-box button:hover {
+        background: #2563eb;
       }
     </style>
   </head>
@@ -326,6 +381,15 @@
         <code>espaço</code>.
       </div>
     </aside>
+
+    <div id="customAlert" class="alert-overlay hidden">
+      <div class="alert-box">
+        <h4 id="alertTitle">Atenção</h4>
+        <p id="alertMessage"></p>
+        <button id="alertBtn">OK</button>
+      </div>
+    </div>
+
     <script>
       document.getElementById("btnEnviar").style.display = "none";
 
@@ -366,6 +430,8 @@
 
       let perguntaAtual = null;
       let pontos = 0;
+      let saiuDaPagina = false;
+      let qtdSaidas = 0;
 
       // gerar pergunta aleatória
       function novaPergunta1() {
@@ -460,58 +526,21 @@
         render(rows);
       }
 
-      // verificar resposta
-      function __verificar() {
-        const nome = document.getElementById("nome").value.trim();
-        if (!nome) {
-          alert("Digite seu nome!");
-          return;
-        }
-
-        const resp = document.getElementById("resposta").value.trim();
-        const correta = perguntaAtual.resposta;
-
-        const acertou = resp === correta;
-
-        if (acertou) {
-          pontos++;
-          document.getElementById("resultado").innerText =
-            "✔ Resposta correta!";
-        } else {
-          document.getElementById(
-            "resultado"
-          ).innerText = `✘ Incorreto. Resposta certa: "${correta}"`;
-        }
-
-        document.getElementById("pontos").innerText = pontos;
-
-        // Registrar na planilha
-        fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            nome: nome,
-            pontos: pontos,
-            pergunta: perguntaAtual.pergunta,
-            acertou: acertou ? "Sim" : "Não",
-          }),
-        });
-      }
-
       function verificar() {
         if (!podeResponder) {
-          alert("Clique em 'Nova Pergunta' antes de responder.");
+          showAlert("Clique em 'Nova Pergunta' antes de responder.");
           return;
         }
 
         const nome = document.getElementById("nome").value.trim();
         if (!nome) {
-          alert("Digite seu nome!");
+          showAlert("Digite seu nome!");
           return;
         }
 
         // proteção: garantir que exista uma pergunta atual
         if (!perguntaAtual || !("resposta" in perguntaAtual)) {
-          alert("Nenhuma pergunta ativa. Clique em 'Nova pergunta'.");
+          showAlert("Nenhuma pergunta ativa. Clique em 'Nova pergunta'.");
           return;
         }
 
@@ -532,7 +561,6 @@
 
         document.getElementById("pontos").innerText = pontos;
 
-        // enviar para a planilha (sem bloqueio; opcional: tratar promise)
         fetch(API_URL, {
           method: "POST",
           body: JSON.stringify({
@@ -540,8 +568,14 @@
             pontos: pontos,
             pergunta: perguntaAtual.pergunta,
             acertou: acertou ? "Sim" : "Não",
+            saiuDaPagina: saiuDaPagina ? "Sim" : "Não",
+            quantidadeSaidas: Math.ceil(qtdSaidas),
           }),
         }).catch((err) => console.warn("Erro no envio:", err));
+
+        // reseta os indicadores para a próxima pergunta
+        saiuDaPagina = false;
+        qtdSaidas = 0;
 
         const box = document.getElementById("resultado");
         box.classList.remove("correto", "errado");
@@ -692,6 +726,38 @@
       // Expor função global (opcional) para abrir via JS: window.openAsciiSidebar()
       window.openAsciiSidebar = openSidebar;
       window.closeAsciiSidebar = closeSidebar;
+
+      // Detecta perda de foco (troca de janela/programa)
+      window.addEventListener("blur", () => {
+        saiuDaPagina = true;
+        qtdSaidas += 1;
+        registrarSaida("blur");
+        showAlert(
+          "Você saiu " +
+            Math.ceil(qtdSaidas) +
+            " vezes, por favor não saia, pois ficará registrado e essa questão pode ser anulada!"
+        );
+      });
+
+      function registrarSaida(tipo) {
+        console.warn("Aluno saiu da página:", tipo);
+      }
+
+      function showAlert(message, title = "Atenção") {
+        const overlay = document.getElementById("customAlert");
+        const msg = document.getElementById("alertMessage");
+        const ttl = document.getElementById("alertTitle");
+        const btn = document.getElementById("alertBtn");
+
+        ttl.textContent = title;
+        msg.textContent = message;
+
+        overlay.classList.remove("hidden");
+
+        btn.onclick = () => {
+          overlay.classList.add("hidden");
+        };
+      }
 
       novaPergunta();
       render(rows);
